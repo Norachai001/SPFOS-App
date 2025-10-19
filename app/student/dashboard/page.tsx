@@ -4,8 +4,8 @@
 import React from 'react';
 import { Student, Privilege } from '@/data/types';
 import { getPrivilegeStatus } from '@/lib/utils';
-import PrivilegeCard from '../../../Components/ui/PrivilegeCard';
-import { CheckCircleIcon, ExclamationIcon, XCircleIcon } from '../../../Components/ui/icons';
+import PrivilegeCard from '@/Components/ui/PrivilegeCard';
+import { CheckCircleIcon, ExclamationIcon, XCircleIcon } from '@/Components/ui/icons';
 
 interface StudentDashboardProps {
     student: Student;
