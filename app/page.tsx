@@ -34,17 +34,17 @@ export default function Home() {
         setUserType(null);
         setPage('dashboard');
     };
-    
+
     const handleSelectPrivilege = (id: number) => {
         setSelectedPrivilegeId(id);
         setPage('detail');
     };
-    
+
     const handleBackToHub = () => {
         setSelectedPrivilegeId(null);
         setPage('hub');
     }
-    
+
     const handleAdminNav = (targetPage: string) => {
         setPage(targetPage);
     };
@@ -52,9 +52,9 @@ export default function Home() {
     const renderStudentContent = () => {
         switch (page) {
             case 'hub':
-                return <PrivilegeHub student={mockStudent} privileges={mockPrivileges} onSelectPrivilege={handleSelectPrivilege}/>;
+                return <PrivilegeHub student={mockStudent} privileges={mockPrivileges} onSelectPrivilege={handleSelectPrivilege} />;
             case 'detail':
-                return <PrivilegeDetailPage student={mockStudent} privilegeId={selectedPrivilegeId} privileges={mockPrivileges} onBack={handleBackToHub}/>;
+                return <PrivilegeDetailPage student={mockStudent} privilegeId={selectedPrivilegeId} privileges={mockPrivileges} onBack={handleBackToHub} />;
             case 'dashboard':
             default:
                 return <StudentDashboard student={mockStudent} privileges={mockPrivileges} />;
@@ -62,7 +62,7 @@ export default function Home() {
     };
 
     const renderStaffContent = () => {
-        switch(page) {
+        switch (page) {
             case 'privilege-management':
                 return <PrivilegeManagement />;
             case 'student-qualifier':
@@ -89,7 +89,7 @@ export default function Home() {
         return (
             <div className="min-h-screen bg-gray-100">
                 <Navbar user={mockStudent} onLogout={handleLogout} />
-                 <nav className="bg-white shadow-sm">
+                <nav className="bg-white shadow-sm">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex justify-start h-12">
                             <div className="flex space-x-8">
@@ -100,19 +100,19 @@ export default function Home() {
                     </div>
                 </nav>
                 <main>
-                     <Suspense fallback={<div className="p-8 text-center">Loading Page...</div>}>
+                    <Suspense fallback={<div className="p-8 text-center">Loading Page...</div>}>
                         {renderStudentContent()}
                     </Suspense>
                 </main>
             </div>
         );
     }
-    
-     if (userType === 'staff') {
-         return (
+
+    if (userType === 'staff') {
+        return (
             <div className="min-h-screen bg-gray-100">
                 <Navbar user={mockStaff} onLogout={handleLogout} />
-                 <nav className="bg-white shadow-sm">
+                <nav className="bg-white shadow-sm">
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                         <div className="flex justify-start h-12 overflow-x-auto">
                             <div className="flex space-x-8 whitespace-nowrap">
@@ -130,6 +130,7 @@ export default function Home() {
                         {renderStaffContent()}
                     </Suspense>
                 </main>
+
             </div>
         );
     }

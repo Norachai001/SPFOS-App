@@ -58,14 +58,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => (
                     </div>
                 </div>
             </div>
-            <div className="bg-white p-6 rounded-lg shadow-md">
+            {/* <div className="bg-white p-6 rounded-lg shadow-md">
                  <h3 className="font-bold text-lg mb-4">เมนูทางลัด</h3>
                  <div className="space-y-4">
                      <button onClick={() => onNavigate('privilege-management')} className="w-full text-left p-4 bg-indigo-50 hover:bg-indigo-100 rounded-lg font-semibold text-indigo-700 transition">จัดการสิทธิพิเศษ</button>
                      <button onClick={() => onNavigate('student-qualifier')} className="w-full text-left p-4 bg-purple-50 hover:bg-purple-100 rounded-lg font-semibold text-purple-700 transition">คัดกรองนิสิต</button>
                      <button onClick={() => onNavigate('reporting-center')} className="w-full text-left p-4 bg-green-50 hover:bg-green-100 rounded-lg font-semibold text-green-700 transition">ศูนย์รายงาน</button>
                  </div>
-            </div>
+            </div> */}
         </div>
     </div>
 );
