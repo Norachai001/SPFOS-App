@@ -1,103 +1,139 @@
-import Image from "next/image";
+// /app/page.tsx
+// นี่คือไฟล์หลักของแอปพลิเคชัน ทำหน้าที่จัดการ State และการแสดงผลของหน้าต่างๆ
+//comment out the line below if you are not using 'use client' directive
+'use client';
+
+import React, { useState, Suspense } from 'react';
+import { mockStudent, mockStaff, mockPrivileges } from '@/data/mock';
+import Navbar from '@/Components/layout/Navbar';
+
+// Lazy load all page components
+const LoginPage = React.lazy(() => import('@/app/login/page'));
+const StudentDashboard = React.lazy(() => import('@/app/student/dashboard/page'));
+const PrivilegeHub = React.lazy(() => import('@/app/student/privileges/page'));
+const PrivilegeDetailPage = React.lazy(() => import('@/app/student/privileges/[id]/page'));
+
+const AdminDashboard = React.lazy(() => import('@/app/admin/dashboard/page'));
+const PrivilegeManagement = React.lazy(() => import('@/app/admin/privileges/page'));
+const StudentQualifierPage = React.lazy(() => import('@/app/admin/qualifier/page'));
+const ReportingCenter = React.lazy(() => import('@/app/admin/reports/page'));
+const UserManagement = React.lazy(() => import('@/app/admin/users/page'));
+
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    const [userType, setUserType] = useState<'student' | 'staff' | null>(null);
+    const [page, setPage] = useState('dashboard'); // 'dashboard', 'hub', 'detail', etc.
+    const [selectedPrivilegeId, setSelectedPrivilegeId] = useState<number | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
-  );
+    const handleLogin = (type: 'student' | 'staff') => {
+        setUserType(type);
+        setPage('dashboard');
+    };
+
+    const handleLogout = () => {
+        setUserType(null);
+        setPage('dashboard');
+    };
+    
+    const handleSelectPrivilege = (id: number) => {
+        setSelectedPrivilegeId(id);
+        setPage('detail');
+    };
+    
+    const handleBackToHub = () => {
+        setSelectedPrivilegeId(null);
+        setPage('hub');
+    }
+    
+    const handleAdminNav = (targetPage: string) => {
+        setPage(targetPage);
+    };
+
+    const renderStudentContent = () => {
+        switch (page) {
+            case 'hub':
+                return <PrivilegeHub student={mockStudent} privileges={mockPrivileges} onSelectPrivilege={handleSelectPrivilege}/>;
+            case 'detail':
+                return <PrivilegeDetailPage student={mockStudent} privilegeId={selectedPrivilegeId} privileges={mockPrivileges} onBack={handleBackToHub}/>;
+            case 'dashboard':
+            default:
+                return <StudentDashboard student={mockStudent} privileges={mockPrivileges} />;
+        }
+    };
+
+    const renderStaffContent = () => {
+        switch(page) {
+            case 'privilege-management':
+                return <PrivilegeManagement />;
+            case 'student-qualifier':
+                return <StudentQualifierPage />;
+            case 'reporting-center':
+                return <ReportingCenter />;
+            case 'user-management':
+                return <UserManagement />;
+            case 'dashboard':
+            default:
+                return <AdminDashboard onNavigate={handleAdminNav} />;
+        }
+    };
+
+    if (!userType) {
+        return (
+            <Suspense fallback={<div className="h-screen w-screen flex items-center justify-center">Loading...</div>}>
+                <LoginPage onLogin={handleLogin} />
+            </Suspense>
+        );
+    }
+
+    if (userType === 'student') {
+        return (
+            <div className="min-h-screen bg-gray-100">
+                <Navbar user={mockStudent} onLogout={handleLogout} />
+                 <nav className="bg-white shadow-sm">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-start h-12">
+                            <div className="flex space-x-8">
+                                <button onClick={() => setPage('dashboard')} className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${page === 'dashboard' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}`}>แดชบอร์ด</button>
+                                <button onClick={() => setPage('hub')} className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${page === 'hub' || page === 'detail' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}`}>สิทธิพิเศษทั้งหมด</button>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+                <main>
+                     <Suspense fallback={<div className="p-8 text-center">Loading Page...</div>}>
+                        {renderStudentContent()}
+                    </Suspense>
+                </main>
+            </div>
+        );
+    }
+    
+     if (userType === 'staff') {
+         return (
+            <div className="min-h-screen bg-gray-100">
+                <Navbar user={mockStaff} onLogout={handleLogout} />
+                 <nav className="bg-white shadow-sm">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                        <div className="flex justify-start h-12 overflow-x-auto">
+                            <div className="flex space-x-8 whitespace-nowrap">
+                                <button onClick={() => setPage('dashboard')} className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${page === 'dashboard' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}`}>แดชบอร์ด</button>
+                                <button onClick={() => setPage('privilege-management')} className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${page === 'privilege-management' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}`}>จัดการสิทธิพิเศษ</button>
+                                <button onClick={() => setPage('student-qualifier')} className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${page === 'student-qualifier' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}`}>คัดกรองนิสิต</button>
+                                <button onClick={() => setPage('reporting-center')} className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${page === 'reporting-center' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}`}>ศูนย์รายงาน</button>
+                                <button onClick={() => setPage('user-management')} className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${page === 'user-management' ? 'border-indigo-500 text-gray-900' : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'}`}>จัดการผู้ใช้งาน</button>
+                            </div>
+                        </div>
+                    </div>
+                </nav>
+                <main>
+                    <Suspense fallback={<div className="p-8 text-center">Loading Page...</div>}>
+                        {renderStaffContent()}
+                    </Suspense>
+                </main>
+            </div>
+        );
+    }
+
+    return null;
 }
+
