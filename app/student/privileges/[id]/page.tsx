@@ -1,15 +1,28 @@
+'use client';
 // /app/(student)/privileges/[id]/page.tsx
-// คอมโพเนนต์สำหรับหน้าแสดงรายละเอียดสิทธิพิเศษ
+// Updated to accept real data via props and use Prisma types
 
 import React from 'react';
-import { Student, Privilege } from '@/data/types';
+import type { Privilege, Student, TranscriptItem, Prisma } from '@prisma/client';
 import { checkQualification } from '@/lib/utils';
 import { CheckCircleIcon, XCircleIcon } from '@/Components/ui/icons';
 
+// Define the structured type for criteria for better type safety within this component
+type PrivilegeCriteria = {
+    gpax?: number;
+    studyYear?: { min: number; max: number };
+    requiredCourses?: string[];
+    specificCourseGrade?: { courseId: string; grade: string };
+};
+
+// Define the expected props for the component
+type StudentWithTranscript = Student & { transcript: TranscriptItem[] };
+type PrivilegeWithCriteria = Privilege & { criteria: Prisma.JsonValue };
+
 interface PrivilegeDetailPageProps {
-    student: Student;
+    student: StudentWithTranscript;
     privilegeId: number | null;
-    privileges: Privilege[];
+    privileges: PrivilegeWithCriteria[];
     onBack: () => void;
 }
 
@@ -17,11 +30,15 @@ const PrivilegeDetailPage: React.FC<PrivilegeDetailPageProps> = ({ student, priv
     const privilege = privileges.find(p => p.id === privilegeId);
     if (!privilege) return <div className="p-8 text-center">ไม่พบสิทธิพิเศษ</div>;
 
+    // Cast the JSON criteria to our structured type for easier access
+    const criteria = privilege.criteria as PrivilegeCriteria;
     const { details } = checkQualification(student, privilege.criteria);
 
-    const renderCriterion = (key: string, label: string, conditionText: string) => {
-        const hasCriterion = key in details;
-        if (!hasCriterion) return null; // Don't render if criterion doesn't apply
+    const renderCriterion = (key: keyof PrivilegeCriteria, label: string, conditionText: string) => {
+        // Check if the criterion exists in the criteria object
+        if (!criteria || !(key in criteria)) {
+            return null; // Don't render if criterion doesn't apply
+        }
         
         return (
             <li key={key} className="flex items-center space-x-3 py-2">
@@ -52,10 +69,10 @@ const PrivilegeDetailPage: React.FC<PrivilegeDetailPageProps> = ({ student, priv
                      <div>
                         <h3 className="text-lg font-semibold text-gray-800 mb-4 border-b pb-2">Checklist คุณสมบัติส่วนตัว</h3>
                         <ul className="text-gray-600">
-                            {renderCriterion('gpax', 'GPAX ขั้นต่ำ', `>= ${privilege.criteria.gpax}`)}
-                            {renderCriterion('studyYear', 'ชั้นปี', `ระหว่าง ${privilege.criteria.studyYear?.min} - ${privilege.criteria.studyYear?.max}`)}
-                            {renderCriterion('requiredCourses', 'รายวิชาที่ต้องผ่าน', privilege.criteria.requiredCourses?.join(', ') || '')}
-                            {renderCriterion('specificCourseGrade', 'เกรดรายวิชาเฉพาะ', `${privilege.criteria.specificCourseGrade?.courseId} ต้องได้เกรด ${privilege.criteria.specificCourseGrade?.grade} ขึ้นไป`)}
+                            {renderCriterion('gpax', 'GPAX ขั้นต่ำ', `>= ${criteria.gpax}`)}
+                            {renderCriterion('studyYear', 'ชั้นปี', `ระหว่าง ${criteria.studyYear?.min} - ${criteria.studyYear?.max}`)}
+                            {renderCriterion('requiredCourses', 'รายวิชาที่ต้องผ่าน', criteria.requiredCourses?.join(', ') || '')}
+                            {renderCriterion('specificCourseGrade', 'เกรดรายวิชาเฉพาะ', `${criteria.specificCourseGrade?.courseId} ต้องได้เกรด ${criteria.specificCourseGrade?.grade} ขึ้นไป`)}
                         </ul>
                     </div>
                 </div>
@@ -65,3 +82,4 @@ const PrivilegeDetailPage: React.FC<PrivilegeDetailPageProps> = ({ student, priv
 };
 
 export default PrivilegeDetailPage;
+

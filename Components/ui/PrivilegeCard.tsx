@@ -1,12 +1,15 @@
 // /components/ui/PrivilegeCard.tsx
-// คอมโพเนนต์การ์ดสำหรับแสดงข้อมูลสิทธิพิเศษแต่ละรายการ
+// Updated to use Prisma types for consistency
 
 import React from 'react';
-import { Privilege } from '@/data/types';
+import type { Privilege, Prisma } from '@prisma/client';
 import { CheckCircleIcon, XCircleIcon, ExclamationIcon } from './icons';
 
+// Define a new type for the privilege prop that includes the JSON criteria
+type PrivilegeWithCriteria = Privilege & { criteria: Prisma.JsonValue };
+
 interface PrivilegeCardProps {
-    privilege: Privilege;
+    privilege: PrivilegeWithCriteria;
     status: 'achieved' | 'nearly' | 'not';
     reason?: string;
 }

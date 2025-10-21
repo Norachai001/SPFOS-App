@@ -1,60 +1,108 @@
-// /app/(admin)/privileges/page.tsx
 'use client';
 import React, { useState, useEffect } from 'react';
-// NOTE: All dependencies are consolidated into this single file to resolve build-time pathing errors.
-// In a standard project, these would be in separate files and imported.
-// --- CONSOLIDATED DEFINITIONS ---
-// From /data/types.ts
-import {Privilege, PrivilegeCriteria } from '@/data/types';
-// From /components/ui/icons.tsx
+import type { Prisma, Privilege } from '@prisma/client';
 import { XCircleIcon } from '@/Components/ui/icons';
 
-export const PrivilegeModal = ({ isOpen, onClose, onSave, editingPrivilege }: {
+// Define a structured type for the criteria object for form state
+type CriteriaObject = {
+    gpax?: number;
+    studyYear?: { min?: number; max?: number };
+    requiredCourses?: string[];
+    specificCourseGrade?: { courseId?: string; grade?: string };
+};
+
+// Add 'export' to make this type available for other files to import
+export type PrivilegeFormData = {
+    id?: number;
+    title: string;
+    type: string;
+    description: string;
+    reward: string;
+    criteria: Prisma.JsonValue;
+};
+
+// This is the type for the full privilege object received from the parent component
+export type PrivilegeWithCriteria = Privilege & {
+    criteria: Prisma.JsonValue;
+};
+
+// Define the props for the Modal component using the types above
+interface PrivilegeModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSave: (privilege: Omit<Privilege, 'id'> & { id?: number }) => void;
-    editingPrivilege: Privilege | null;
-}) => {
+    onSave: (privilegeData: PrivilegeFormData) => void;
+    editingPrivilege: PrivilegeWithCriteria | null;
+}
+
+export const PrivilegeModal = ({ isOpen, onClose, onSave, editingPrivilege }: PrivilegeModalProps) => {
     const [title, setTitle] = useState('');
     const [type, setType] = useState('ประจำมหาวิทยาลัย');
     const [description, setDescription] = useState('');
     const [reward, setReward] = useState('');
-    const [criteria, setCriteria] = useState<Partial<PrivilegeCriteria>>({});
+    // State for criteria form fields, using our structured CriteriaObject type
+    const [criteria, setCriteria] = useState<CriteriaObject>({});
     const isEditing = !!editingPrivilege;
 
     useEffect(() => {
-        if (isOpen && isEditing) {
-            setTitle(editingPrivilege.title);
-            setType(editingPrivilege.type);
-            setDescription(editingPrivilege.description);
-            setReward(editingPrivilege.reward);
-            setCriteria(editingPrivilege.criteria || {});
-        } else {
-            setTitle(''); setType('ประจำมหาวิทยาลัย'); setDescription(''); setReward(''); setCriteria({});
+        if (isOpen) {
+            if (isEditing && editingPrivilege.criteria) {
+                setTitle(editingPrivilege.title);
+                setType(editingPrivilege.type);
+                setDescription(editingPrivilege.description);
+                setReward(editingPrivilege.reward);
+                // When editing, cast the JsonValue to our CriteriaObject
+                setCriteria(editingPrivilege.criteria as CriteriaObject);
+            } else {
+                // Reset form for new privilege
+                setTitle('');
+                setType('ประจำมหาวิทยาลัย');
+                setDescription('');
+                setReward('');
+                setCriteria({});
+            }
         }
-    }, [editingPrivilege, isOpen]);
+    }, [editingPrivilege, isOpen, isEditing]);
 
     if (!isOpen) return null;
 
     const handleSaveClick = () => {
         if (!title || !description || !reward) {
-            alert("กรุณากรอกข้อมูลที่จำเป็น: ชื่อ, คำอธิบาย, และรางวัล"); return;
+            alert("กรุณากรอกข้อมูลที่จำเป็น: ชื่อ, คำอธิบาย, และรางวัล");
+            return;
         }
-        const finalCriteria: PrivilegeCriteria = {
-            gpax: criteria.gpax && !isNaN(criteria.gpax) ? criteria.gpax : undefined,
-            studyYear: (criteria.studyYear?.min && criteria.studyYear?.max && !isNaN(criteria.studyYear.min) && !isNaN(criteria.studyYear.max)) ? { min: criteria.studyYear.min, max: criteria.studyYear.max } : undefined,
+
+        // Clean up empty criteria fields before saving
+        const cleanedCriteria: CriteriaObject = { ...criteria };
+        if (!cleanedCriteria.gpax) delete cleanedCriteria.gpax;
+        if (!cleanedCriteria.studyYear?.min && !cleanedCriteria.studyYear?.max) delete cleanedCriteria.studyYear;
+        if (!cleanedCriteria.requiredCourses || cleanedCriteria.requiredCourses.length === 0) delete cleanedCriteria.requiredCourses;
+        if (!cleanedCriteria.specificCourseGrade?.courseId) delete cleanedCriteria.specificCourseGrade;
+
+        const privilegeData: PrivilegeFormData = {
+            id: isEditing ? editingPrivilege.id : undefined,
+            title,
+            type,
+            description,
+            reward,
+            criteria: cleanedCriteria as Prisma.JsonValue,
         };
-        const privilegeData = { id: isEditing ? editingPrivilege.id : undefined, title, type, description, reward, criteria: finalCriteria };
+
         onSave(privilegeData);
     };
 
-    const handleCriteriaChange = <K extends keyof PrivilegeCriteria>(field: K, value: PrivilegeCriteria[K]) => setCriteria(prev => ({ ...prev, [field]: value }));
+    const handleCriteriaChange = <K extends keyof CriteriaObject>(field: K, value: CriteriaObject[K]) => {
+        setCriteria(prev => ({ ...prev, [field]: value }));
+    };
+
     const handleStudyYearChange = (field: 'min' | 'max', value: string) => {
-        const intValue = parseInt(value, 10);
-        const currentMin = criteria.studyYear?.min ?? NaN;
-        const currentMax = criteria.studyYear?.max ?? NaN;
-        const newStudyYear = { min: field === 'min' ? intValue : currentMin, max: field === 'max' ? intValue : currentMax };
-        handleCriteriaChange('studyYear', newStudyYear);
+        const intValue = value ? parseInt(value, 10) : undefined;
+        setCriteria(prev => ({
+            ...prev,
+            studyYear: {
+                ...prev.studyYear,
+                [field]: isNaN(intValue!) ? undefined : intValue,
+            }
+        }));
     };
 
     return (
@@ -73,7 +121,7 @@ export const PrivilegeModal = ({ isOpen, onClose, onSave, editingPrivilege }: {
                     <div>
                         <h4 className="text-lg font-semibold mb-2">เครื่องมือสร้างเงื่อนไข</h4>
                         <div className="space-y-3 p-4 border rounded-md bg-gray-50">
-                            <div><label className="flex items-center gap-2"><span>GPAX ≥</span><input type="number" step="0.01" value={criteria.gpax || ''} onChange={e => handleCriteriaChange('gpax', parseFloat(e.target.value))} className="w-full p-2 border rounded-md" /></label></div>
+                            <div><label className="flex items-center gap-2"><span>GPAX ≥</span><input type="number" step="0.01" value={criteria.gpax || ''} onChange={e => handleCriteriaChange('gpax', parseFloat(e.target.value) || undefined)} className="w-full p-2 border rounded-md" /></label></div>
                             <div><label>ชั้นปี</label><div className="grid grid-cols-2 gap-4"><input type="number" placeholder="ต่ำสุด" value={criteria.studyYear?.min || ''} onChange={e => handleStudyYearChange('min', e.target.value)} className="w-full p-2 border rounded-md" /><input type="number" placeholder="สูงสุด" value={criteria.studyYear?.max || ''} onChange={e => handleStudyYearChange('max', e.target.value)} className="w-full p-2 border rounded-md" /></div></div>
                         </div>
                     </div>
@@ -86,3 +134,4 @@ export const PrivilegeModal = ({ isOpen, onClose, onSave, editingPrivilege }: {
         </div>
     );
 };
+

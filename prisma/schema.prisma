@@ -1,77 +1,58 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// กำหนด generator สำหรับ Prisma Client (ใช้ JavaScript)
 generator client {
   provider = "prisma-client-js"
 }
 
-// กำหนด datasource (การเชื่อมต่อฐานข้อมูล)
 datasource db {
-  provider = "postgresql" // <--- ตั้งค่า provider เป็น postgresql ตามที่ต้องการ
-  url      = env("DATABASE_URL") // <--- ดึง Connection String จากไฟล์ .env
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-// --- กำหนด Models ตาม data/types.ts ---
+// --- MODELS ---
 
-// Model สำหรับข้อมูลนิสิต
+// Model for student data
 model Student {
-  id        String           @id @unique // ใช้รหัสนิสิตเป็น ID หลัก และไม่ซ้ำกัน
+  id        String           @id @unique
   name      String
   faculty   String
-  major     String?          // Major อาจจะไม่มีก็ได้ (?)
+  major     String?
   avatarUrl String
-  gpax      Float            // GPAX เป็นเลขทศนิยม
-  studyYear Int              // ชั้นปีเป็นเลขจำนวนเต็ม
-  transcript TranscriptItem[] // ความสัมพันธ์: นิสิต 1 คน มี Transcript ได้หลายรายการ
+  gpax      Float
+  studyYear Int
+  transcript TranscriptItem[]
 }
 
-// Model สำหรับข้อมูลเจ้าหน้าที่
+// Model for staff data
 model Staff {
-  id        String  @id @unique // ใช้ ID เจ้าหน้าที่เป็น ID หลัก
+  id        String  @id @unique
   name      String
   role      String
   avatarUrl String
-  email     String? @unique // Email อาจจะไม่มี แต่ถ้ามีต้องไม่ซ้ำกัน (?)
+  email     String? @unique
 }
 
-// Model สำหรับข้อมูลสิทธิพิเศษ
+// Model for privilege data
 model Privilege {
-  id                  Int     @id @default(autoincrement()) // ใช้ ID ที่เพิ่มอัตโนมัติเป็น ID หลัก
-  title               String
-  type                String  // เช่น 'ประจำมหาวิทยาลัย', 'ประจำคณะ', 'บางโอกาส'
-  description         String
-  reward              String
-
-  // Criteria Fields (เก็บข้อมูล Criteria โดยตรงใน Privilege)
-  // ทำให้ง่ายขึ้น แต่ถ้า Criteria ซับซ้อนมากๆ อาจพิจารณาแยก Model
-  criteriaGpax        Float?  // GPAX ขั้นต่ำ (อาจไม่มี)
-  criteriaStudyYearMin Int?    // ชั้นปี ต่ำสุด (อาจไม่มี)
-  criteriaStudyYearMax Int?    // ชั้นปี สูงสุด (อาจไม่มี)
-  criteriaRequiredCourses String[] // รายวิชาที่ต้องผ่าน (เก็บเป็น Array ของ String)
-  criteriaSpecificCourseId String? // รหัสวิชาเฉพาะ (อาจไม่มี)
-  criteriaSpecificCourseGrade String? // เกรดที่ต้องการสำหรับวิชาเฉพาะ (อาจไม่มี)
-
-  // ไม่จำเป็นต้องมี reason ใน database เพราะเป็นค่าที่คำนวณตอนแสดงผล
+  id          Int    @id @default(autoincrement())
+  title       String
+  type        String
+  description String
+  reward      String
+  criteria    Json // Using JSON type to store the criteria object
 }
 
-// Model สำหรับรายการ Transcript ของนิสิต
+// Model for student's transcript items
 model TranscriptItem {
-  id        Int     @id @default(autoincrement()) // ID ของรายการ Transcript
-  courseId  String  // รหัสวิชา
-  grade     String  // เกรดที่ได้
+  id        Int     @id @default(autoincrement())
+  courseId  String
+  grade     String
 
-  // ความสัมพันธ์: Transcript แต่ละรายการเป็นของนิสิตคนไหน
+  // Relation to Student
   studentId String
-  student   Student @relation(fields: [studentId], references: [id]) // เชื่อมโยงกลับไปที่ Student ด้วย studentId
+  student   Student @relation(fields: [studentId], references: [id])
 
-  @@unique([studentId, courseId]) // กำหนดว่านิสิต 1 คน มีผลการเรียนวิชาเดียวกันได้แค่รายการเดียว
+  @@unique([studentId, courseId])
 }
 
-// หมายเหตุ: PrivilegeCriteria จาก types.ts ถูกรวม field เข้ามาใน Privilege Model โดยตรงเพื่อความง่าย
-// หากต้องการโครงสร้างที่ซับซ้อนกว่านี้ อาจต้องแยก Criteria เป็น Model ต่างหาก

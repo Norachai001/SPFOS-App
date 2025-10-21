@@ -2,7 +2,7 @@
 // คอมโพเนนต์สำหรับหน้าแดชบอร์ดของผู้ดูแลระบบ
 
 import React from 'react';
-import { mockPrivileges } from '../../../data/mock';
+
 
 interface AdminDashboardProps {
     onNavigate: (page: string) => void;
@@ -20,7 +20,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ onNavigate }) => (
             </div>
              <div className="bg-white p-6 rounded-lg shadow-md">
                 <h3 className="text-gray-500">สิทธิพิเศษทั้งหมด</h3>
-                <p className="text-3xl font-bold text-purple-600">{mockPrivileges.length}</p>
+                <p className="text-3xl font-bold text-purple-600"></p>
             </div>
              <div className="bg-white p-6 rounded-lg shadow-md">
                 <h3 className="text-gray-500">ผู้สมัครใหม่วันนี้</h3>

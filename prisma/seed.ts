@@ -1,122 +1,143 @@
 const { PrismaClient } = require('@prisma/client');
 
-// สร้าง instance ของ PrismaClient
-const prisma = new PrismaClient();
+// เปลี่ยนชื่อตัวแปรจาก 'prisma' เป็น 'db' เพื่อหลีกเลี่ยงการประกาศซ้ำซ้อน
+const db = new PrismaClient();
+// ข้อมูลจำลอง (Mock Data)
+// ... (ข้อมูลส่วนนี้เหมือนเดิม) ...
+const staffData = [
+  {
+    id: 'staff001',
+    name: 'อ.ใจดี มีเมตตา',
+    role: 'เจ้าหน้าที่คณะวิศวกรรมศาสตร์',
+    email: 'jaidee.m@uni.ac.th',
+    avatarUrl: 'https://placehold.co/100x100/9f7aea/ffffff?text=JD',
+  },
+  {
+    id: 'admin01',
+    name: 'ผู้ดูแลระบบ',
+    role: 'ผู้ดูแลระบบสูงสุด',
+    email: 'admin@uni.ac.th',
+    avatarUrl: 'https://placehold.co/100x100/718096/ffffff?text=AD',
+  },
+];
+const privilegesData = [
+    {
+        title: 'ทุนเรียนดี',
+        type: 'ประจำมหาวิทยาลัย',
+        description: 'มอบทุนการศึกษาสำหรับนิสิตที่มีผลการเรียนยอดเยี่ยม',
+        reward: 'ทุนการศึกษา 20,000 บาท',
+        criteria: { gpax: 3.75, studyYear: { min: 2, max: 4 } },
+    },
+    {
+        title: 'โครงการแลกเปลี่ยน ณ ประเทศญี่ปุ่น',
+        type: 'บางโอกาส',
+        description: 'โอกาสในการไปศึกษาและแลกเปลี่ยนวัฒนธรรม ณ มหาวิทยาลัยโตเกียว',
+        reward: 'ตั๋วเครื่องบินและที่พัก',
+        criteria: { gpax: 3.50, requiredCourses: ['GEN101'], studyYear: { min: 3, max: 3 } },
+    },
+    {
+        title: 'ผู้ช่วยสอนวิชา CPE101',
+        type: 'ประจำคณะ',
+        description: 'ร่วมเป็นส่วนหนึ่งของทีมสอนในรายวิชาพื้นฐานสำคัญ',
+        reward: 'ค่าตอบแทนรายชั่วโมง',
+        criteria: { gpax: 3.25, specificCourseGrade: { courseId: 'CPE101', grade: 'A' } },
+    },
+    {
+        title: 'สิทธิ์ในการจองที่จอดรถโซนพิเศษ',
+        type: 'ประจำมหาวิทยาลัย',
+        description: 'อำนวยความสะดวกในการเดินทางมาเรียน',
+        reward: 'สติกเกอร์จอดรถโซน A',
+        criteria: { studyYear: { min: 4, max: 4 } },
+    },
+];
+
+const studentsData = [
+  { id: '66010001', name: 'สมชาย เรียนดี', faculty: 'วิศวกรรมศาสตร์', major: 'วิศวกรรมคอมพิวเตอร์', avatarUrl: 'https://placehold.co/100x100/667eea/ffffff?text=SC', gpax: 3.85, studyYear: 4, transcript: [{ courseId: 'CPE101', grade: 'A' }, { courseId: 'GEN101', grade: 'B+' }] },
+  { id: '66010002', name: 'สมศรี มีชัย', faculty: 'วิศวกรรมศาสตร์', major: 'วิศวกรรมโยธา', avatarUrl: 'https://placehold.co/100x100/ed64a6/ffffff?text=SM', gpax: 3.92, studyYear: 4, transcript: [{ courseId: 'CPE101', grade: 'A' }, { courseId: 'GEN101', grade: 'A' }] },
+  { id: '65020011', name: 'มานะ อดทน', faculty: 'วิทยาศาสตร์', major: 'วิทยาการคอมพิวเตอร์', avatarUrl: 'https://placehold.co/100x100/48bb78/ffffff?text=MA', gpax: 3.76, studyYear: 3, transcript: [{ courseId: 'GEN101', grade: 'B' }] },
+  { id: '65020012', name: 'ใจดี จริงใจ', faculty: 'วิทยาศาสตร์', major: 'เคมี', avatarUrl: 'https://placehold.co/100x100/f56565/ffffff?text=JD', gpax: 3.40, studyYear: 3, transcript: [{ courseId: 'GEN101', grade: 'A' }] },
+  { id: '64030025', name: 'ปิติ ยินดี', faculty: 'บริหารธุรกิจ', major: 'การตลาด', avatarUrl: 'https://placehold.co/100x100/ecc94b/ffffff?text=PY', gpax: 3.55, studyYear: 2, transcript: [{ courseId: 'GEN101', grade: 'C+' }] },
+  { id: '64030026', name: 'วีระ กล้าหาญ', faculty: 'บริหารธุรกิจ', major: 'การเงิน', avatarUrl: 'https://placehold.co/100x100/a0aec0/ffffff?text=VK', gpax: 2.99, studyYear: 2, transcript: [] },
+  { id: '63040001', name: 'สวยงาม ตามท้องเรื่อง', faculty: 'ศิลปกรรมศาสตร์', major: 'ออกแบบนิเทศศิลป์', avatarUrl: 'https://placehold.co/100x100/d53f8c/ffffff?text=ST', gpax: 3.88, studyYear: 4, transcript: [{ courseId: 'GEN101', grade: 'A' }] },
+  { id: '66010003', name: 'นักสู้ ผู้ยิ่งใหญ่', faculty: 'วิศวกรรมศาสตร์', major: 'วิศวกรรมเครื่องกล', avatarUrl: 'https://placehold.co/100x100/38b2ac/ffffff?text=NP', gpax: 3.21, studyYear: 1, transcript: [] },
+  { id: '65010004', name: 'ทดสอบ ระบบ', faculty: 'วิศวกรรมศาสตร์', major: 'วิศวกรรมคอมพิวเตอร์', avatarUrl: 'https://placehold.co/100x100/718096/ffffff?text=TS', gpax: 4.00, studyYear: 3, transcript: [{ courseId: 'CPE101', grade: 'A' }, { courseId: 'GEN101', grade: 'A' }] },
+  { id: '64020005', name: 'เรียนไป บ่นไป', faculty: 'วิทยาศาสตร์', major: 'ฟิสิกส์', avatarUrl: 'https://placehold.co/100x100/f6ad55/ffffff?text=RB', gpax: 2.75, studyYear: 2, transcript: [{ courseId: 'GEN101', grade: 'D' }] },
+];
+
 
 async function main() {
-  console.log(`Start seeding ...`);
+  console.log('Start seeding ...');
 
-  // --- 1. สร้างข้อมูล Staff ---
-  console.log('Seeding staff...');
-  await prisma.staff.upsert({
-    where: { id: 'staff001' },
-    update: {},
-    create: {
-      id: 'staff001',
-      name: 'อ.ใจดี มีเมตตา',
-      role: 'เจ้าหน้าที่คณะวิศวกรรมศาสตร์',
-      avatarUrl: 'https://placehold.co/100x100/9f7aea/ffffff?text=JD',
-      email: 'jaidee.m@uni.ac.th'
-    },
-  });
-  await prisma.staff.upsert({
-    where: { id: 'admin01' },
-    update: {},
-    create: {
-        id: 'admin01',
-        name: 'ผู้ดูแลระบบ',
-        role: 'ผู้ดูแลระบบสูงสุด',
-        avatarUrl: 'https://placehold.co/100x100/718096/ffffff?text=AD',
-        email: 'admin@uni.ac.th'
-    },
-  });
-
-  // --- 2. สร้างข้อมูล Privileges ---
-  console.log('Seeding privileges...');
-  const privilegesData = [
-      { id: 1, title: 'ทุนเรียนดี', type: 'ประจำมหาวิทยาลัย', description: 'มอบทุนการศึกษาสำหรับนิสิตที่มีผลการเรียนยอดเยี่ยม', reward: 'ทุนการศึกษา 20,000 บาท', criteria: { gpax: 3.75, studyYear: { min: 2, max: 4 } } },
-      { id: 2, title: 'โครงการแลกเปลี่ยน ณ ประเทศญี่ปุ่น', type: 'บางโอกาส', description: 'โอกาสในการไปศึกษาและแลกเปลี่ยนวัฒนธรรม', reward: 'ตั๋วเครื่องบินและที่พัก', criteria: { gpax: 3.50, requiredCourses: ['GEN101'], studyYear: { min: 3, max: 3 } } },
-      { id: 3, title: 'ผู้ช่วยสอนวิชา CPE101', type: 'ประจำคณะ', description: 'ร่วมเป็นส่วนหนึ่งของทีมสอนในรายวิชาพื้นฐานสำคัญ', reward: 'ค่าตอบแทนรายชั่วโมง', criteria: { gpax: 3.25, specificCourseGrade: { courseId: 'CPE101', grade: 'A' } } },
-      { id: 4, title: 'สิทธิ์ในการจองที่จอดรถโซนพิเศษ', type: 'ประจำมหาวิทยาลัย', description: 'อำนวยความสะดวกในการเดินทางมาเรียน', reward: 'สติกเกอร์จอดรถโซน A', criteria: { studyYear: { min: 4, max: 4 } } },
-  ];
-
-  for (const p of privilegesData) {
-      await prisma.privilege.upsert({
-          where: { id: p.id },
-          update: {
-              title: p.title,
-              type: p.type,
-              description: p.description,
-              reward: p.reward,
-              criteriaGpax: p.criteria.gpax,
-              criteriaStudyYearMin: p.criteria.studyYear?.min,
-              criteriaStudyYearMax: p.criteria.studyYear?.max,
-              criteriaRequiredCourses: p.criteria.requiredCourses || [],
-              criteriaSpecificCourseId: p.criteria.specificCourseGrade?.courseId,
-              criteriaSpecificCourseGrade: p.criteria.specificCourseGrade?.grade,
-          },
-          create: {
-              id: p.id,
-              title: p.title,
-              type: p.type,
-              description: p.description,
-              reward: p.reward,
-              criteriaGpax: p.criteria.gpax,
-              criteriaStudyYearMin: p.criteria.studyYear?.min,
-              criteriaStudyYearMax: p.criteria.studyYear?.max,
-              criteriaRequiredCourses: p.criteria.requiredCourses || [],
-              criteriaSpecificCourseId: p.criteria.specificCourseGrade?.courseId,
-              criteriaSpecificCourseGrade: p.criteria.specificCourseGrade?.grade,
-          },
+  // Seed Staff
+  try {
+    console.log('Seeding staff...');
+    for (const s of staffData) {
+      // ใช้ db แทน prisma
+      await db.staff.upsert({
+        where: { id: s.id },
+        update: {},
+        create: s,
       });
+    }
+    console.log('Staff seeding finished.');
+  } catch (error) {
+    console.error('ERROR SEEDING STAFF:', error);
   }
 
-
-  // --- 3. สร้างข้อมูล Students พร้อม Transcript ---
-  console.log('Seeding students...');
-  const studentsData = [
-    { id: '66010001', name: 'สมชาย เรียนดี', faculty: 'วิศวกรรมศาสตร์', major: 'วิศวกรรมคอมพิวเตอร์', avatarUrl: 'https://placehold.co/100x100/667eea/ffffff?text=SC', gpax: 3.85, studyYear: 4, transcript: [{ courseId: 'CPE101', grade: 'A' }, { courseId: 'GEN101', grade: 'B+' }] },
-    { id: '66010002', name: 'สมศรี มีชัย', faculty: 'วิศวกรรมศาสตร์', major: 'วิศวกรรมไฟฟ้า', avatarUrl: 'https://placehold.co/100x100/ed64a6/ffffff?text=SM', gpax: 3.92, studyYear: 4, transcript: [{ courseId: 'CPE101', grade: 'A' }, { courseId: 'GEN101', grade: 'A' }] },
-    { id: '65020011', name: 'มานะ อดทน', faculty: 'วิทยาศาสตร์', major: 'วิทยาการคอมพิวเตอร์', avatarUrl: 'https://placehold.co/100x100/48bb78/ffffff?text=MA', gpax: 3.76, studyYear: 3, transcript: [{ courseId: 'GEN101', grade: 'B' }] },
-    { id: '64030025', name: 'ปิติ ยินดี', faculty: 'บริหารธุรกิจ', major: 'การตลาด', avatarUrl: 'https://placehold.co/100x100/ecc94b/ffffff?text=PY', gpax: 3.45, studyYear: 2, transcript: [{ courseId: 'GEN101', grade: 'C+' }] },
-    { id: '66010005', name: 'วีระ กล้าหาญ', faculty: 'วิศวกรรมศาสตร์', major: 'วิศวกรรมโยธา', avatarUrl: 'https://placehold.co/100x100/f56565/ffffff?text=VK', gpax: 3.15, studyYear: 4, transcript: [{ courseId: 'CPE101', grade: 'C' }] },
-    { id: '65020015', name: 'สุดา ใจงาม', faculty: 'วิทยาศาสตร์', major: 'เคมี', avatarUrl: 'https://placehold.co/100x100/4299e1/ffffff?text=SJ', gpax: 3.88, studyYear: 3, transcript: [{ courseId: 'GEN101', grade: 'A' }] },
-    { id: '64040030', name: 'มานี ชูใจ', faculty: 'มนุษยศาสตร์', major: 'ภาษาอังกฤษ', avatarUrl: 'https://placehold.co/100x100/a3bf2f/ffffff?text=MC', gpax: 3.60, studyYear: 2, transcript: [] },
-    { id: '66010008', name: 'อาทิตย์ ตั้งใจ', faculty: 'วิศวกรรมศาสตร์', major: 'วิศวกรรมคอมพิวเตอร์', avatarUrl: 'https://placehold.co/100x100/d53f8c/ffffff?text=AT', gpax: 3.20, studyYear: 4, transcript: [{ courseId: 'CPE101', grade: 'B' }, { courseId: 'GEN101', grade: 'B' }] },
-    { id: '63050040', name: 'จันทรา แจ่มใส', faculty: 'ศิลปกรรมศาสตร์', major: 'ออกแบบนิเทศศิลป์', avatarUrl: 'https://placehold.co/100x100/6b46c1/ffffff?text=JJ', gpax: 3.95, studyYear: 3, transcript: [{ courseId: 'GEN101', grade: 'A' }] },
-    { id: '65020022', name: 'เอกราช มั่นคง', faculty: 'วิทยาศาสตร์', major: 'ฟิสิกส์', avatarUrl: 'https://placehold.co/100x100/dd6b20/ffffff?text=EM', gpax: 2.90, studyYear: 3, transcript: [{ courseId: 'GEN101', grade: 'C' }] },
-  ];
-
-  for (const student of studentsData) {
-    await prisma.student.upsert({
-      where: { id: student.id },
-      update: {},
-      create: {
-        id: student.id,
-        name: student.name,
-        faculty: student.faculty,
-        major: student.major,
-        avatarUrl: student.avatarUrl,
-        gpax: student.gpax,
-        studyYear: student.studyYear,
-        transcript: {
-          create: student.transcript,
+  // Seed Privileges
+  try {
+    console.log('Seeding privileges...');
+    // Delete existing privileges before creating new ones to avoid conflicts and reset IDs
+    await db.privilege.deleteMany({});
+    for (const p of privilegesData) {
+      // ใช้ db แทน prisma
+      await db.privilege.create({
+        data: {
+          title: p.title,
+          type: p.type,
+          description: p.description,
+          reward: p.reward,
+          criteria: p.criteria as any, // Use `as any` because Prisma expects JsonValue
         },
-      },
-    });
-    console.log(`Created or updated student with id: ${student.id}`);
+      });
+    }
+    console.log('Privileges seeding finished.');
+  } catch (error) {
+    console.error('ERROR SEEDING PRIVILEGES:', error);
   }
 
-  console.log(`Seeding finished.`);
+  // Seed Students and their Transcripts
+  try {
+    console.log('Seeding students and transcripts...');
+    for (const s of studentsData) {
+      const { transcript, ...studentData } = s;
+      // ใช้ db แทน prisma
+      await db.student.upsert({
+        where: { id: studentData.id },
+        update: {},
+        create: {
+          ...studentData,
+          transcript: {
+            create: transcript,
+          },
+        },
+      });
+    }
+    console.log('Students and transcripts seeding finished.');
+  } catch (error) {
+    console.error('ERROR SEEDING STUDENTS:', error);
+  }
+
+  console.log('Seeding finished.');
 }
 
-// รัน function main และจัดการ error/การปิด connection
 main()
   .catch((e) => {
     console.error(e);
     process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    // ใช้ db แทน prisma
+    await db.$disconnect();
   });
 

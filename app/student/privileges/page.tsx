@@ -1,14 +1,19 @@
+'use client';
 // /app/(student)/privileges/page.tsx
-// คอมโพเนนต์สำหรับหน้าแสดงรายการสิทธิพิเศษทั้งหมด
+// Updated to accept real data via props
 
 import React, { useState, useMemo } from 'react';
-import { Student, Privilege } from '@/data/types';
+import type { Privilege, Student, TranscriptItem, Prisma } from '@prisma/client';
 import { checkQualification } from '@/lib/utils';
-import { SearchIcon } from '../../../Components/ui/icons';
+import { SearchIcon } from '@/Components/ui/icons';
+
+// Define the expected props for the component
+type StudentWithTranscript = Student & { transcript: TranscriptItem[] };
+type PrivilegeWithCriteria = Privilege & { criteria: Prisma.JsonValue };
 
 interface PrivilegeHubProps {
-    student: Student;
-    privileges: Privilege[];
+    student: StudentWithTranscript;
+    privileges: PrivilegeWithCriteria[];
     onSelectPrivilege: (id: number) => void;
 }
 
@@ -47,7 +52,8 @@ const PrivilegeHub: React.FC<PrivilegeHubProps> = ({ student, privileges, onSele
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                 {filteredPrivileges.map(p => {
-                    const { isQualified } = checkQualification(student, p.criteria);
+                    // Cast criteria to 'any' for checkQualification function
+                    const { isQualified } = checkQualification(student, p.criteria as any);
                     const status = isQualified ? 'มีคุณสมบัติ' : 'ไม่มีคุณสมบัติ';
                     return (
                          <div key={p.id} onClick={() => onSelectPrivilege(p.id)} className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow cursor-pointer overflow-hidden">
@@ -69,3 +75,4 @@ const PrivilegeHub: React.FC<PrivilegeHubProps> = ({ student, privileges, onSele
 };
 
 export default PrivilegeHub;
+

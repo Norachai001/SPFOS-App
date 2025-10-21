@@ -1,78 +1,134 @@
-// /app/(admin)/privileges/page.tsx
 'use client';
 
-import React, { useState, useMemo } from 'react';
-// NOTE: All dependencies are consolidated into this single file to resolve build-time pathing errors.
-// In a standard project, these would be in separate files and imported.
-// --- CONSOLIDATED DEFINITIONS ---
-// From /data/types.ts
-import { Privilege } from '@/data/types';
-// From /data/mock.ts
-import { mockPrivileges, mockAllStudents, } from '@/data/mock';
-// From /lib/utils.ts
+import React, { useState, useMemo, useEffect } from 'react';
+import type { Student, TranscriptItem, Prisma, Privilege } from '@prisma/client';
+
+// Import the specific types we need from the Modal component
+import { PrivilegeModal, type PrivilegeWithCriteria, type PrivilegeFormData } from '@/Components/admin/PrivilegeModal';
+import { StudentListModal } from '@/Components/admin/StudentListModal';
+import { ConfirmDeleteModal } from '@/Components/admin/ConfirmDeleteModal';
 import { checkQualification } from '@/lib/utils';
 
-import { PrivilegeModal } from '@/Components/admin/PrivilegeModal';
-// From /components/admin/StudentListModal.tsx
-import { StudentListModal } from '@/Components/admin/StudentListModa';
-// From /components/admin/ConfirmDeleteModal.tsx    
-import { ConfirmDeleteModal } from '@/Components/admin/ConfirmDeleteModal'
-
+// Define a type that includes the relations we need
+type StudentWithTranscript = Student & {
+    transcript: TranscriptItem[];
+};
 
 const PrivilegeManagement = () => {
-    const [privileges, setPrivileges] = useState<Privilege[]>(mockPrivileges);
+    const [privileges, setPrivileges] = useState<PrivilegeWithCriteria[]>([]);
+    const [students, setStudents] = useState<StudentWithTranscript[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
     const [isPrivilegeModalOpen, setIsPrivilegeModalOpen] = useState(false);
     const [isStudentListModalOpen, setIsStudentListModalOpen] = useState(false);
     const [isConfirmDeleteModalOpen, setIsConfirmDeleteModalOpen] = useState(false);
-    const [editingPrivilege, setEditingPrivilege] = useState<Privilege | null>(null);
-    const [viewingStudentsFor, setViewingStudentsFor] = useState<Privilege | null>(null);
-    const [deletingPrivilege, setDeletingPrivilege] = useState<Privilege | null>(null);
+
+    const [editingPrivilege, setEditingPrivilege] = useState<PrivilegeWithCriteria | null>(null);
+    const [viewingStudentsFor, setViewingStudentsFor] = useState<PrivilegeWithCriteria | null>(null);
+    const [deletingPrivilege, setDeletingPrivilege] = useState<PrivilegeWithCriteria | null>(null);
+
+    const fetchData = async () => {
+        setIsLoading(true);
+        setError(null);
+        try {
+            const [privilegesRes, studentsRes] = await Promise.all([
+                fetch('/api/privileges'),
+                fetch('/api/students'),
+            ]);
+
+            if (!privilegesRes.ok) throw new Error('Failed to fetch privileges');
+            if (!studentsRes.ok) throw new Error('Failed to fetch students');
+
+            const privilegesData = await privilegesRes.json();
+            const studentsData = await studentsRes.json();
+
+            setPrivileges(privilegesData);
+            setStudents(studentsData);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An unknown error occurred');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchData();
+    }, []);
+
 
     const handleAddNewClick = () => {
         setEditingPrivilege(null);
         setIsPrivilegeModalOpen(true);
     };
 
-    const handleEditClick = (privilege: Privilege) => {
+    const handleEditClick = (privilege: PrivilegeWithCriteria) => {
         setEditingPrivilege(privilege);
         setIsPrivilegeModalOpen(true);
     };
 
-    const handleDeleteClick = (privilege: Privilege) => {
+    const handleDeleteClick = (privilege: PrivilegeWithCriteria) => {
         setDeletingPrivilege(privilege);
         setIsConfirmDeleteModalOpen(true);
     };
 
-    const handleConfirmDelete = () => {
+    const handleConfirmDelete = async () => {
         if (!deletingPrivilege) return;
-        setPrivileges(prev => prev.filter(p => p.id !== deletingPrivilege.id));
-        setIsConfirmDeleteModalOpen(false);
-        setDeletingPrivilege(null);
-    };
-
-    const handleSaveOrUpdatePrivilege = (privilegeData: Omit<Privilege, 'id'> & { id?: number }) => {
-        if (privilegeData.id) {
-            setPrivileges(prev => prev.map(p => p.id === privilegeData.id ? { ...p, ...privilegeData } as Privilege : p));
-        } else {
-            const newPrivilege: Privilege = {
-                id: Math.max(0, ...privileges.map(p => p.id)) + 1,
-                ...privilegeData,
-            } as Privilege;
-            setPrivileges(prev => [...prev, newPrivilege]);
+        try {
+            const response = await fetch(`/api/privileges/${deletingPrivilege.id}`, {
+                method: 'DELETE',
+            });
+            if (!response.ok) {
+                throw new Error('Failed to delete privilege.');
+            }
+            setPrivileges(prev => prev.filter(p => p.id !== deletingPrivilege.id));
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An unknown error occurred');
+        } finally {
+            setIsConfirmDeleteModalOpen(false);
+            setDeletingPrivilege(null);
         }
-        setIsPrivilegeModalOpen(false);
-        setEditingPrivilege(null);
     };
 
-    const handleViewStudentsClick = (privilege: Privilege) => {
+    // Correct the parameter type to match what PrivilegeModal sends
+    const handleSaveOrUpdatePrivilege = async (privilegeData: PrivilegeFormData) => {
+        const { id, ...data } = privilegeData;
+        const url = id ? `/api/privileges/${id}` : '/api/privileges';
+        const method = id ? 'PUT' : 'POST';
+
+        try {
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+            if (!response.ok) {
+                throw new Error('Failed to save privilege.');
+            }
+            // Refresh data after saving
+            await fetchData();
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An unknown error occurred');
+        } finally {
+            setIsPrivilegeModalOpen(false);
+            setEditingPrivilege(null);
+        }
+    };
+
+
+    const handleViewStudentsClick = (privilege: PrivilegeWithCriteria) => {
         setViewingStudentsFor(privilege);
         setIsStudentListModalOpen(true);
     };
-
+    
     const qualifiedStudentsForSelected = useMemo(() => {
         if (!viewingStudentsFor) return [];
-        return mockAllStudents.filter(s => checkQualification(s, viewingStudentsFor.criteria).isQualified);
-    }, [viewingStudentsFor]);
+        return students.filter(s => checkQualification(s, viewingStudentsFor.criteria as any).isQualified);
+    }, [viewingStudentsFor, students]);
+
+
+    if (isLoading) return <div className="p-8 text-center">Loading data...</div>;
+    if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>;
 
 
     return (
@@ -95,15 +151,15 @@ const PrivilegeManagement = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {privileges.map((p, index) => {
-                                const qualifiedStudents = mockAllStudents.filter(s => checkQualification(s, p.criteria).isQualified);
+                            {privileges.map(p => {
+                                const qualifiedCount = students.filter(s => checkQualification(s, p.criteria as any).isQualified).length;
                                 return (
-                                    <tr key={`privilege-${p.id}-${index}`} className="bg-white border-b hover:bg-gray-50">
+                                    <tr key={p.id} className="bg-white border-b hover:bg-gray-50">
                                         <th className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">{p.title}</th>
                                         <td className="px-6 py-4">{p.type}</td>
                                         <td className="px-6 py-4">
                                             <button onClick={() => handleViewStudentsClick(p)} className="text-indigo-600 hover:underline font-semibold">
-                                                {qualifiedStudents.length} คน
+                                                {qualifiedCount} คน
                                             </button>
                                         </td>
                                         <td className="px-6 py-4 flex gap-2">

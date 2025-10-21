@@ -1,7 +1,6 @@
 'use client';
-import {Privilege } from '@/data/types';
 import { XCircleIcon } from '@/Components/ui/icons';
-import { Student } from '@/data/types';
+import type { Student, Privilege } from '@prisma/client';
 export const StudentListModal = ({ isOpen, onClose, privilege, students }: {
     isOpen: boolean; onClose: () => void; privilege: Privilege | null; students: Student[];
 }) => {

@@ -2,8 +2,8 @@
 // คอมโพเนนต์ Navbar สำหรับแสดงส่วนหัวของเว็บ
 
 import React from 'react';
-import { Student, Staff } from '@/data/types';
-import { MenuIcon, LogoutIcon } from '../ui/icons';
+import type { Student,Staff  } from '@prisma/client';
+import { MenuIcon, LogoutIcon } from '@/Components/ui/icons';
 
 interface NavbarProps {
     user: Student | Staff;
